@@ -1,2 +1,0 @@
-# roblox-sorgu-botu-
-S
