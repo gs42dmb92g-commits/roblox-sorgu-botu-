@@ -1,0 +1,62 @@
+const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
+const axios = require('axios');
+
+const client = new Client({
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent
+    ]
+});
+
+const PREFIX = '!';
+
+client.on('messageCreate', async (message) => {
+    if (message.author.bot || !message.content.startsWith(PREFIX)) return;
+
+    const args = message.content.slice(PREFIX.length).trim().split(/ +/);
+    const command = args.shift().toLowerCase();
+
+    if (command === 'sorgu' || command === 'profil') {
+        const username = args[0];
+
+        if (!username) {
+            return message.reply('❌ Lütfen geçerli bir Roblox kullanıcı adı girin!\n**Kullanım:** `!sorgu KullanıcıAdı`');
+        }
+
+        try {
+            // API'den veriyi çekiyoruz
+            const response = await axios.get(`https://sorgu-roblox.vercel.app/api/groups?username=${username}`);
+            const data = response.data;
+
+            let groupsList = '';
+            
+            if (data.groups) {
+                // " | " ile ayrılmış grupları alt alta maddelere çeviriyoruz
+                const groupsArray = data.groups.split(' | ');
+                groupsList = groupsArray.map(g => `• ${g}`).join('\n');
+            } else {
+                groupsList = 'Herhangi bir gruba dahil değil veya veri bulunamadı.';
+            }
+
+            const embed = new EmbedBuilder()
+                .setTitle(`🎮 Roblox Grup Sorgusu: ${data.username || username}`)
+                .setColor('#00FFAA')
+                .addFields(
+                    { name: '👤 Kullanıcı Adı', value: `${data.username || username}`, inline: true },
+                    { name: '🆔 Kullanıcı ID', value: `${data.id || 'Bilinmiyor'}`, inline: true },
+                    { name: '👥 Bulunduğu Gruplar', value: groupsList }
+                )
+                .setFooter({ text: 'THA Bot • Roblox API Sorgu Sistemi' })
+                .setTimestamp();
+
+            await message.channel.send({ embeds: [embed] });
+
+        } catch (error) {
+            console.error(error);
+            message.reply('❌ Kullanıcı bilgileri çekilirken bir hata oluştu veya kullanıcı bulunamadı.');
+        }
+    }
+});
+
+client.login('DISCORD_BOT_TOKEN_BURAYA');
